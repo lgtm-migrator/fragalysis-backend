@@ -268,43 +268,49 @@ class UploadCSet(View):
             if str(choice) == '1':
                 # Start chained celery tasks. NB first function passes tuple
                 # to second function - see tasks.py
-                # task_upload = chain(validate.s(tmp_file, target=target, zfile=zfile),
-                #                     process_compound_set.s())()
+                task_upload = chain(validate.s(tmp_file, target=target, zfile=zfile),
+                                    process_compound_set.s())
 
-                # Let's try two separate tasks
-                task_validate = validate.delay(tmp_file, target=target, zfile=zfile)
-                results = task_validate.get()
-                # NB get tuple from validate task
-                validate_dict = results[0]
-                validated = results[1]
-                target = results[2]
-                filename = results[3]
-                zfile = results[4]
-
-                #task_upload = process_compound_set.delay(target, tmp_file, zfile=None)
-                task_upload = process_compound_set.delay(validate_dict, validated,
-                                                         target, filename, zfile)
-
+                # # Let's try two separate tasks
+                # task_validate = validate.delay(tmp_file, target=target, zfile=zfile)
+                # results = task_validate.get()
+                # # NB get tuple from validate task
+                # validate_dict = results[0]
+                # validated = results[1]
+                # task_upload = process_compound_set.delay(target, tmp_file, zfile=None)
+                # task_upload = process_compound_set.delay(target, tmp_file, zfile)
                 # Get results
+                #results_upload = task_upload.get()
+
                 results = task_upload.get()
 
-                if results is not None:
-                    cset_name = results
-                    cset = CompoundSet.objects.get(name=cset_name)
-                    submitter = cset.submitter
-                    name = submitter.unique_name
-                    response_data['results'] = {}
-                    response_data['results']['cset_download_url'] = '/viewer/compound_set/%s' % name
-                    response_data['results']['pset_download_url'] = '/viewer/protein_set/%s' % name
-
+                if isinstance(results, tuple):
                     # set pandas options to display all column data
                     pd.set_option('display.max_colwidth', -1)
 
                     table = pd.DataFrame.from_dict(validate_dict)
                     html_table = table.to_html()
-                    html_table += '''<p> Your data was uploaded. </p>'''
+                    html_table += '''<p> Your data was <b>not</b> validated. </p>'''
                     return render(request, 'viewer/upload-cset.html',
                                   {'form': form, 'table': html_table, 'download_url': ''})
+
+                if isinstance(results, str):
+                        cset_name = results
+                        cset = CompoundSet.objects.get(name=cset_name)
+                        submitter = cset.submitter
+                        name = submitter.unique_name
+                        # response_data['results'] = {}
+                        # response_data['results']['cset_download_url'] = '/viewer/compound_set/%s' % name
+                        # response_data['results']['pset_download_url'] = '/viewer/protein_set/%s' % name
+
+                        # set pandas options to display all column data
+                        pd.set_option('display.max_colwidth', -1)
+
+                        table = pd.DataFrame.from_dict(validate_dict)
+                        html_table = table.to_html()
+                        html_table += '''<p> Your data was uploaded. </p>'''
+                        return render(request, 'viewer/upload-cset.html',
+                                      {'form': form, 'table': html_table, 'download_url': ''})
 
                 else:
                     # set pandas options to display all column data
@@ -315,40 +321,6 @@ class UploadCSet(View):
                     html_table += '''<p> Your data was <b>not</b> uploaded. </p>'''
                     return render(request, 'viewer/upload-cset.html',
                                   {'form': form, 'table': html_table, 'download_url': ''})
-
-
-                # Check for d,v vs csetname output
-                # if isinstance(results, tuple):
-                #     # Get dictionary
-                #     validate_dict = results[0]
-                #
-                #     # set pandas options to display all column data
-                #     pd.set_option('display.max_colwidth', -1)
-                #
-                #     table = pd.DataFrame.from_dict(validate_dict)
-                #     html_table = table.to_html()
-                #     html_table += '''<p> Your data was <b>not</b> validated. The table above shows errors</p>'''
-                #     return render(request, 'viewer/upload-cset.html',
-                #                   {'form': form, 'table': html_table, 'download_url': ''})
-                    # 'Validation failed message'
-
-                # Check for d,v vs csetname output
-                # Check in with Rachael if we are expecting a string here?
-                # if isinstance(results, str):
-                #     cset_name = results
-                #     cset = CompoundSet.objects.get(name=cset_name)
-                #     submitter = cset.submitter
-                #     name = submitter.unique_name
-                #     response_data['results'] = {}
-                #     response_data['results']['cset_download_url'] = '/viewer/compound_set/%s' % name
-                #     response_data['results']['pset_download_url'] = '/viewer/protein_set/%s' % name
-
-                    # context['upload_task_id'] = task_upload.id
-                    # context['upload_task_status'] = task_upload.status
-                    #
-                    # # Need to check what url shoudl load here - kinda like a progress
-                    # # or just a message that pops up saying we're busy
-                    # return render(request, 'viewer/upload-cset.html', context)
 
         context['form'] = form
         return render(request, 'viewer/upload-cset.html', context)

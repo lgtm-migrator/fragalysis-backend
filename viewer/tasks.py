@@ -26,7 +26,6 @@ def check_services():
     return True
 
 ### Uploading ###
-
 @shared_task
 def process_compound_set(validate_dict, validated, target, filename, zfile):
     # Validate output is a tuple - this is one way to get
@@ -35,7 +34,7 @@ def process_compound_set(validate_dict, validated, target, filename, zfile):
     #validate_dict, validated, target, filename, zfile = validateOutput
 
     if not validated:
-        return (validate_dict,validated)
+        return (validate_dict, validated)
 
     if validated:
         print('processing compound set: ' + filename)
