@@ -28,11 +28,11 @@ def check_services():
 ### Uploading ###
 
 @shared_task
-def process_compound_set(validate_output):
+def process_compound_set(validate_dict, validated, target, filename, zfile):
     # Validate output is a tuple - this is one way to get
     # Celery chaining to work where second function uses tuple output
     # from first function called
-    validate_dict, validated, target, filename, zfile = validate_output
+    #validate_dict, validated, target, filename, zfile = validateOutput
 
     if not validated:
         return (validate_dict,validated)
