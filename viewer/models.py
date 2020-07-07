@@ -35,6 +35,8 @@ class Target(models.Model):
     uniprot_id = models.CharField(max_length=100, null=True)
     # metadatafile containing sites info for download
     metadata = models.FileField(upload_to="metadata/", null=True, max_length=255)
+    # root directory in media where data is saved in it's original upload format
+    root_data_directory = models.CharField(null=True, max_length=255)
 
     class Meta:
         permissions = (("view_target", "View target"),)

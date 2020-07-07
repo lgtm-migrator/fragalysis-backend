@@ -168,14 +168,47 @@ class ISpyBSafeStaticFiles:
         return queryset
 
     def get_response(self):
+        # try:
+            queryset = self.get_queryset()
+            filter_dict = {self.field_name + "__endswith": self.input_string}
+            object = queryset.get(**filter_dict)
+
+            file_name = os.path.basename(str(getattr(object, self.field_name)))
+
+            if '/' in self.input_string:
+                file_name = self.input_string
+
+
+            response = HttpResponse()
+            response["Content-Type"] = self.content_type
+            response["X-Accel-Redirect"] = self.prefix + file_name
+            response["Content-Disposition"] = "attachment;filename=" + file_name
+            return response
+        # except Exception:
+        #     raise Http404
+
+
+
+class ISpyBSafeTargetFiles:
+
+    def get_queryset(self):
+        query = ISpyBSafeQuerySet()
+        query.request = self.request
+        query.filter_permissions = self.permission_string
+        query.queryset = self.model.objects.filter()
+        queryset = query.get_queryset()
+        return queryset
+
+    def get_response(self):
         try:
             queryset = self.get_queryset()
             filter_dict = {self.field_name + "__endswith": self.input_string}
             object = queryset.get(**filter_dict)
-            file_name = os.path.basename(str(getattr(object, self.field_name)))
+
             response = HttpResponse()
             response["Content-Type"] = self.content_type
             response["X-Accel-Redirect"] = self.prefix + file_name
+            # return str(self.prefix + file_name)
             response["Content-Disposition"] = "attachment;filename=" + file_name
             return response
         except Exception:
